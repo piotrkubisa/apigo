@@ -13,62 +13,151 @@ import (
 	"github.com/pkg/errors"
 )
 
-// NewRequest returns a new http.Request from the given Lambda event.
-func NewRequest(ctx context.Context, e events.APIGatewayProxyRequest) (*http.Request, error) {
-	// path
-	u, err := url.Parse(e.Path)
-	if err != nil {
-		return nil, errors.Wrap(err, "parsing path")
+// RequestTransformer is a function which transforms a event and context
+// provided from the API Gateway to http.Request.
+type RequestTransformer func(context.Context, events.APIGatewayProxyRequest) (*http.Request, error)
+
+// TransformRequest returns a new http.Request from the given Lambda event.
+func TransformRequest(ctx context.Context, ev events.APIGatewayProxyRequest) (*http.Request, error) {
+	b := NewRequestBuilder(ctx, ev)
+	err := b.Transform(
+		b.ParseURL,
+		b.ParseBody,
+		b.CreateRequest,
+		b.SetRemoteAddr,
+		b.SetHeaderFields,
+		b.SetContentLength,
+		b.SetCustomHeaders,
+		b.SetXRayHeader,
+	)
+	return b.Request, err
+}
+
+// RequestBuilder is an wrapper which helps transforming event from AWS API
+// Gateway as a http.Request.
+type RequestBuilder struct {
+	ctx context.Context
+	ev  events.APIGatewayProxyRequest
+
+	Path    string
+	URL     *url.URL
+	Body    *strings.Reader
+	Request *http.Request
+}
+
+// NewRequestBuilder defines new RequestBuilder with context and event data
+// provided from the API Gateway.
+func NewRequestBuilder(ctx context.Context, ev events.APIGatewayProxyRequest) *RequestBuilder {
+	return &RequestBuilder{ctx: ctx, ev: ev}
+}
+
+// Transformer transforms event from AWS API Gateway to the http.Request.
+type Transformer func() error
+
+// Transform AWS API Gateway event to a http.Request.
+func (b *RequestBuilder) Transform(ts ...Transformer) error {
+	if ts == nil || len(ts) == 0 {
+		return errors.New("no transformers defined")
 	}
 
-	// querystring
+	for _, p := range ts {
+		if err := p(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ParseURL provides URL (as a *url.URL) to the RequestBuilder.
+func (b *RequestBuilder) ParseURL() error {
+	// Whether path has been already defined (i.e. processed by previous
+	// function) then use it, otherwise use path from the event.
+	path := b.Path
+	if len(path) == 0 {
+		path = b.ev.Path
+	}
+
+	// Parse URL to *url.URL
+	u, err := url.Parse(path)
+	if err != nil {
+		return errors.Wrap(err, "parsing path")
+	}
+
+	// Query-string
 	q := u.Query()
-	for k, v := range e.QueryStringParameters {
+	for k, v := range b.ev.QueryStringParameters {
 		q.Set(k, v)
 	}
 	u.RawQuery = q.Encode()
 
-	// base64 encoded body
-	body := e.Body
-	if e.IsBase64Encoded {
+	// Host
+	u.Host = b.ev.Headers["Host"]
+
+	b.URL = u
+	return nil
+}
+
+// ParseBody provides body of the request to the RequestBuilder.
+func (b *RequestBuilder) ParseBody() error {
+	body := b.ev.Body
+	if b.ev.IsBase64Encoded {
 		b, err := base64.StdEncoding.DecodeString(body)
 		if err != nil {
-			return nil, errors.Wrap(err, "decoding base64 body")
+			return errors.Wrap(err, "decoding base64 body")
 		}
 		body = string(b)
 	}
 
-	// new request
-	req, err := http.NewRequest(e.HTTPMethod, u.String(), strings.NewReader(body))
+	b.Body = strings.NewReader(body)
+	return nil
+}
+
+// CreateRequest provides *http.Request to the RequestBuilder.
+func (b *RequestBuilder) CreateRequest() error {
+	req, err := http.NewRequest(b.ev.HTTPMethod, b.URL.String(), b.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating request")
+		return errors.Wrap(err, "creating request")
 	}
 
-	// remote addr
-	req.RemoteAddr = e.RequestContext.Identity.SourceIP
+	b.Request = req
+	return nil
+}
 
-	// header fields
-	for k, v := range e.Headers {
-		req.Header.Set(k, v)
+// SetRemoteAddr sets RemoteAddr to the request.
+func (b *RequestBuilder) SetRemoteAddr() error {
+	b.Request.RemoteAddr = b.ev.RequestContext.Identity.SourceIP
+	return nil
+}
+
+// SetHeaderFields sets headers to the request.
+func (b *RequestBuilder) SetHeaderFields() error {
+	for k, v := range b.ev.Headers {
+		b.Request.Header.Set(k, v)
 	}
+	return nil
+}
 
-	// content-length
-	if req.Header.Get("Content-Length") == "" && body != "" {
-		req.Header.Set("Content-Length", strconv.Itoa(len(body)))
+// SetContentLength sets Content-Length to the request if it has not been set.
+func (b *RequestBuilder) SetContentLength() error {
+	if b.Request.Header.Get("Content-Length") == "" {
+		b.Request.Header.Set("Content-Length", strconv.Itoa(b.Body.Len()))
 	}
+	return nil
+}
 
-	// custom fields
-	req.Header.Set("X-Request-Id", e.RequestContext.RequestID)
-	req.Header.Set("X-Stage", e.RequestContext.Stage)
+// SetCustomHeaders sets additional headers from the event's RequestContext to
+// the request.
+func (b *RequestBuilder) SetCustomHeaders() error {
+	b.Request.Header.Set("X-Request-Id", b.ev.RequestContext.RequestID)
+	b.Request.Header.Set("X-Stage", b.ev.RequestContext.Stage)
+	return nil
+}
 
-	// xray support
-	if traceID := ctx.Value("x-amzn-trace-id"); traceID != nil {
-		req.Header.Set("X-Amzn-Trace-Id", fmt.Sprintf("%v", traceID))
+// SetXRayHeader sets AWS X-Ray Trace ID from the event's context.
+func (b *RequestBuilder) SetXRayHeader() error {
+	if traceID := b.ctx.Value("x-amzn-trace-id"); traceID != nil {
+		b.Request.Header.Set("X-Amzn-Trace-Id", fmt.Sprintf("%v", traceID))
 	}
-
-	// host
-	req.URL.Host = req.Header.Get("Host")
-	req.Host = req.URL.Host
-
-	return req, nil
+	return nil
 }
