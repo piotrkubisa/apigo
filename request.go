@@ -124,6 +124,12 @@ func (b *RequestBuilder) CreateRequest() error {
 	return nil
 }
 
+// AttachContext attaches events' RequestContext to the http.Request.
+func (b *RequestBuilder) AttachContext() error {
+	b.Request = AttachRequestContext(b.Request, b.ev)
+	return nil
+}
+
 // SetRemoteAddr sets RemoteAddr to the request.
 func (b *RequestBuilder) SetRemoteAddr() error {
 	b.Request.RemoteAddr = b.ev.RequestContext.Identity.SourceIP
