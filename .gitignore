@@ -1,0 +1,6 @@
+# Installed dependencies via golang/dep tool
+# To install dependencies via dep, please run `dep ensure --vendor-only`
+vendor/
+
+# Copy of vendor/ directory made by glide when `dep init` was run again
+_vendor-*/
