@@ -13,62 +13,131 @@ import (
 	"github.com/pkg/errors"
 )
 
+type RequestProxy func(context.Context, events.APIGatewayProxyRequest) (*http.Request, error)
+
 // NewRequest returns a new http.Request from the given Lambda event.
-func NewRequest(ctx context.Context, e events.APIGatewayProxyRequest) (*http.Request, error) {
+func NewRequest(ctx context.Context, ev events.APIGatewayProxyRequest) (*http.Request, error) {
+	ep := NewEventRequestParser(ctx, ev)
+	err := ep.Parse(
+		ep.ParseURL,
+		ep.ParseBody,
+		ep.CreateRequest,
+		ep.SetRemoteAddr,
+		ep.SetHeaderFields,
+		ep.SetContentLength,
+		ep.SetCustomHeaders,
+		ep.SetXRayHeader,
+	)
+	return ep.Request, err
+}
+
+type EventRequestParser struct {
+	ctx context.Context
+	ev  events.APIGatewayProxyRequest
+
+	Path    string
+	URL     *url.URL
+	Body    *strings.Reader
+	Request *http.Request
+}
+
+func NewEventRequestParser(ctx context.Context, ev events.APIGatewayProxyRequest) *EventRequestParser {
+	return &EventRequestParser{ctx: ctx, ev: ev}
+}
+
+func (ep *EventRequestParser) Parse(parsers ...Parser) error {
+	if parsers == nil || len(parsers) == 0 {
+		return errors.New("no parsers defined")
+	}
+
+	for _, p := range parsers {
+		if err := p(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+type Parser func() error
+
+func (ep *EventRequestParser) ParseURL() error {
+	path := ep.Path
+	if len(path) == 0 {
+		path = ep.ev.Path
+	}
+
 	// path
-	u, err := url.Parse(e.Path)
+	u, err := url.Parse(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "parsing path")
+		return errors.Wrap(err, "parsing path")
 	}
 
 	// querystring
 	q := u.Query()
-	for k, v := range e.QueryStringParameters {
+	for k, v := range ep.ev.QueryStringParameters {
 		q.Set(k, v)
 	}
 	u.RawQuery = q.Encode()
 
-	// base64 encoded body
-	body := e.Body
-	if e.IsBase64Encoded {
+	u.Host = ep.ev.Headers["Host"]
+
+	ep.URL = u
+	return nil
+}
+
+func (ep *EventRequestParser) ParseBody() error {
+	body := ep.ev.Body
+	if ep.ev.IsBase64Encoded {
 		b, err := base64.StdEncoding.DecodeString(body)
 		if err != nil {
-			return nil, errors.Wrap(err, "decoding base64 body")
+			return errors.Wrap(err, "decoding base64 body")
 		}
 		body = string(b)
 	}
 
-	// new request
-	req, err := http.NewRequest(e.HTTPMethod, u.String(), strings.NewReader(body))
+	ep.Body = strings.NewReader(body)
+	return nil
+}
+
+func (ep *EventRequestParser) CreateRequest() error {
+	req, err := http.NewRequest(ep.ev.HTTPMethod, ep.URL.String(), ep.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating request")
+		return errors.Wrap(err, "creating request")
 	}
 
-	// remote addr
-	req.RemoteAddr = e.RequestContext.Identity.SourceIP
+	ep.Request = req
+	return nil
+}
 
-	// header fields
-	for k, v := range e.Headers {
-		req.Header.Set(k, v)
+func (ep *EventRequestParser) SetRemoteAddr() error {
+	ep.Request.RemoteAddr = ep.ev.RequestContext.Identity.SourceIP
+	return nil
+}
+
+func (ep *EventRequestParser) SetHeaderFields() error {
+	for k, v := range ep.ev.Headers {
+		ep.Request.Header.Set(k, v)
 	}
+	return nil
+}
 
-	// content-length
-	if req.Header.Get("Content-Length") == "" && body != "" {
-		req.Header.Set("Content-Length", strconv.Itoa(len(body)))
+func (ep *EventRequestParser) SetContentLength() error {
+	if ep.Request.Header.Get("Content-Length") == "" {
+		ep.Request.Header.Set("Content-Length", strconv.Itoa(ep.Body.Len()))
 	}
+	return nil
+}
 
-	// custom fields
-	req.Header.Set("X-Request-Id", e.RequestContext.RequestID)
-	req.Header.Set("X-Stage", e.RequestContext.Stage)
+func (ep *EventRequestParser) SetCustomHeaders() error {
+	ep.Request.Header.Set("X-Request-Id", ep.ev.RequestContext.RequestID)
+	ep.Request.Header.Set("X-Stage", ep.ev.RequestContext.Stage)
+	return nil
+}
 
-	// xray support
-	if traceID := ctx.Value("x-amzn-trace-id"); traceID != nil {
-		req.Header.Set("X-Amzn-Trace-Id", fmt.Sprintf("%v", traceID))
+func (ep *EventRequestParser) SetXRayHeader() error {
+	if traceID := ep.ctx.Value("x-amzn-trace-id"); traceID != nil {
+		ep.Request.Header.Set("X-Amzn-Trace-Id", fmt.Sprintf("%v", traceID))
 	}
-
-	// host
-	req.URL.Host = req.Header.Get("Host")
-	req.Host = req.URL.Host
-
-	return req, nil
+	return nil
 }
