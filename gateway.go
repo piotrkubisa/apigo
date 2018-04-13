@@ -10,7 +10,7 @@ import (
 
 type Gateway struct {
 	Handler      http.Handler
-	RequestProxy RequestProxy
+	RequestProxy RequestTransformer
 }
 
 // ListenAndServe is a drop-in replacement for http.ListenAndServe for use
@@ -40,7 +40,7 @@ func (g *Gateway) ListenAndServe() error {
 // as a APIGatewayProxyResponse.
 func (g *Gateway) Serve(ctx context.Context, e events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	if g.RequestProxy == nil {
-		g.RequestProxy = NewRequest
+		g.RequestProxy = TransformRequest
 	}
 
 	r, err := g.RequestProxy(ctx, e)
