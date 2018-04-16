@@ -76,6 +76,33 @@ func (b *RequestBuilder) Transform(ts ...Transformer) error {
 	return nil
 }
 
+// StripBasePath removes a BasePath from the Path fragment of the URL.
+// StripBasePath must be run before RequestBuilder.ParseURL function.
+func (b *RequestBuilder) StripBasePath(basePath string) error {
+	b.Path = omitBasePath(b.ev.Path, basePath)
+	return nil
+}
+
+// omitBasePath strips out the base path from the given path.
+//
+// It allows to support both API endpoints (default, auto-generated
+// "execute-api" address and configured Base Path Mapping/ with a Custom Domain
+// Name), while preserving the same routing registered on the http.Handler.
+func omitBasePath(path string, basePath string) string {
+	if path == "/" || basePath == "" {
+		return path
+	}
+
+	if strings.HasPrefix(path, "/"+basePath) {
+		path = strings.Replace(path, basePath, "", 1)
+	}
+	if strings.HasPrefix(path, "//") {
+		path = path[1:]
+	}
+
+	return path
+}
+
 // ParseURL provides URL (as a *url.URL) to the RequestBuilder.
 func (b *RequestBuilder) ParseURL() error {
 	// Whether path has been already defined (i.e. processed by previous
