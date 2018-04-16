@@ -2,27 +2,22 @@ package apigo
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 )
 
-type contextKey int
+type requestContextKey struct{}
 
-const (
-	requestContextKey contextKey = iota
-)
+var contextKey = &requestContextKey{}
 
-// AttachRequestContext populates a context.Context from the http.Request with a
+// NewContext populates a context.Context from the http.Request with a
 // request context provided in event from the AWS API Gateway proxy.
-func AttachRequestContext(r *http.Request, ev events.APIGatewayProxyRequest) *http.Request {
-	return r.WithContext(
-		context.WithValue(r.Context(), requestContextKey, ev.RequestContext),
-	)
+func NewContext(ctx context.Context, ev events.APIGatewayProxyRequest) context.Context {
+	return context.WithValue(ctx, contextKey, ev.RequestContext)
 }
 
 // RequestContext returns the APIGatewayProxyRequestContext value stored in ctx.
 func RequestContext(ctx context.Context) (events.APIGatewayProxyRequestContext, bool) {
-	c, ok := ctx.Value(requestContextKey).(events.APIGatewayProxyRequestContext)
+	c, ok := ctx.Value(contextKey).(events.APIGatewayProxyRequestContext)
 	return c, ok
 }

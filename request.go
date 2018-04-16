@@ -13,17 +13,18 @@ import (
 	"github.com/pkg/errors"
 )
 
-// RequestTransformer is a function which transforms a event and context
+// RequestTransformer is a function which transforms an event and context
 // provided from the API Gateway to http.Request.
 type RequestTransformer func(context.Context, events.APIGatewayProxyRequest) (*http.Request, error)
 
-// TransformRequest returns a new http.Request from the given Lambda event.
-func TransformRequest(ctx context.Context, ev events.APIGatewayProxyRequest) (*http.Request, error) {
+// NewRequest returns a new http.Request created from the given Lambda event.
+func NewRequest(ctx context.Context, ev events.APIGatewayProxyRequest) (*http.Request, error) {
 	b := NewRequestBuilder(ctx, ev)
 	err := b.Transform(
 		b.ParseURL,
 		b.ParseBody,
 		b.CreateRequest,
+		b.AttachContext,
 		b.SetRemoteAddr,
 		b.SetHeaderFields,
 		b.SetContentLength,
@@ -126,7 +127,7 @@ func (b *RequestBuilder) CreateRequest() error {
 
 // AttachContext attaches events' RequestContext to the http.Request.
 func (b *RequestBuilder) AttachContext() error {
-	b.Request = AttachRequestContext(b.Request, b.ev)
+	b.Request = b.Request.WithContext(NewContext(b.Request.Context(), b.ev))
 	return nil
 }
 

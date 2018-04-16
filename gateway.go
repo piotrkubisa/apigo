@@ -40,7 +40,7 @@ func (g *Gateway) ListenAndServe() error {
 // as a APIGatewayProxyResponse.
 func (g *Gateway) Serve(ctx context.Context, e events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	if g.RequestProxy == nil {
-		g.RequestProxy = TransformRequest
+		g.RequestProxy = NewRequest
 	}
 
 	r, err := g.RequestProxy(ctx, e)
