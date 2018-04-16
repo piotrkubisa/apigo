@@ -1,5 +1,6 @@
 # apigo
 
+[![Documentation](https://godoc.org/github.com/piotrkubisa/apigo?status.svg)](http://godoc.org/github.com/piotrkubisa/apigo)
 [![Build Status](https://travis-ci.org/piotrkubisa/apigo.svg?branch=master)](https://travis-ci.org/piotrkubisa/apigo)
 [![Go Report Card](https://goreportcard.com/badge/github.com/piotrkubisa/apigo)](https://goreportcard.com/report/github.com/piotrkubisa/apigo)
 [![Exago](https://api.exago.io:443/badge/rank/github.com/piotrkubisa/apigo)](https://exago.io/project/github.com/piotrkubisa/apigo)
