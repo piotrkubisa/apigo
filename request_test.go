@@ -56,8 +56,6 @@ func TestStripBasePath_customDomain(t *testing.T) {
 		e.Path = "/pets"
 		r, err := newRequestStripBasePath(e, "pets")
 		assert.NoError(t, err)
-
-		// 	{"ListItems_WithBasePath_Custom", args{"/pets", basePath}, "/"},
 		assert.Equal(t, "/", r.URL.Path)
 	})
 
@@ -65,8 +63,6 @@ func TestStripBasePath_customDomain(t *testing.T) {
 		e.Path = "/pets/123"
 		r, err := newRequestStripBasePath(e, "pets")
 		assert.NoError(t, err)
-
-		// 	{"GetItem_WithBasePath_Custom", args{"/pets/123", basePath}, "/123"},
 		assert.Equal(t, "/123", r.URL.Path)
 	})
 }
