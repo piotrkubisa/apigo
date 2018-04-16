@@ -3,11 +3,98 @@ package apigo
 import (
 	"context"
 	"io/ioutil"
+	"net/http"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/tj/assert"
 )
+
+func newRequestStripBasePath(e events.APIGatewayProxyRequest, basePath string) (*http.Request, error) {
+	b := NewRequestBuilder(context.Background(), e)
+	b.StripBasePath(basePath)
+	err := b.Transform(b.DefaultTransforms()...)
+	return b.Request, err
+}
+
+func TestStripBasePath_executeapi(t *testing.T) {
+	e := events.APIGatewayProxyRequest{
+		Headers: map[string]string{
+			"Host": "xxxxxxxxxx.execute-api.us-east-1.amazonaws.com",
+		},
+		RequestContext: events.APIGatewayProxyRequestContext{
+			Stage: "testing",
+		},
+	}
+
+	t.Run("GetItem", func(t *testing.T) {
+		e.Path = "/123"
+		r, err := newRequestStripBasePath(e, "pets")
+		assert.NoError(t, err)
+		assert.Equal(t, "/123", r.URL.Path)
+	})
+
+	t.Run("ListItems", func(t *testing.T) {
+		e.Path = "/"
+		r, err := newRequestStripBasePath(e, "pets")
+		assert.NoError(t, err)
+		assert.Equal(t, "/", r.URL.Path)
+	})
+}
+
+func TestStripBasePath_customDomain(t *testing.T) {
+	e := events.APIGatewayProxyRequest{
+		Headers: map[string]string{
+			"Host": "api.example.com",
+		},
+		RequestContext: events.APIGatewayProxyRequestContext{
+			Stage: "testing",
+		},
+	}
+
+	t.Run("ListItems", func(t *testing.T) {
+		e.Path = "/pets"
+		r, err := newRequestStripBasePath(e, "pets")
+		assert.NoError(t, err)
+
+		// 	{"ListItems_WithBasePath_Custom", args{"/pets", basePath}, "/"},
+		assert.Equal(t, "/", r.URL.Path)
+	})
+
+	t.Run("GetItem", func(t *testing.T) {
+		e.Path = "/pets/123"
+		r, err := newRequestStripBasePath(e, "pets")
+		assert.NoError(t, err)
+
+		// 	{"GetItem_WithBasePath_Custom", args{"/pets/123", basePath}, "/123"},
+		assert.Equal(t, "/123", r.URL.Path)
+	})
+}
+
+func TestStripBasePath_noBasePath(t *testing.T) {
+	e := events.APIGatewayProxyRequest{
+		Headers: map[string]string{
+			"Host": "api.example.com",
+		},
+		RequestContext: events.APIGatewayProxyRequestContext{
+			Stage: "testing",
+		},
+	}
+
+	t.Run("ListItems", func(t *testing.T) {
+		e.Path = "/"
+		r, err := newRequestStripBasePath(e, "")
+		assert.NoError(t, err)
+		assert.Equal(t, "/", r.URL.Path)
+	})
+
+	t.Run("GetItem", func(t *testing.T) {
+		e.Path = "/123"
+		r, err := newRequestStripBasePath(e, "")
+		assert.NoError(t, err)
+		assert.Equal(t, "/123", r.URL.Path)
+	})
+}
 
 func TestNewRequest_path(t *testing.T) {
 	e := events.APIGatewayProxyRequest{
