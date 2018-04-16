@@ -1,5 +1,7 @@
 # apigo
 
+[![Build Status](https://travis-ci.org/piotrkubisa/apigo.svg?branch=master)](https://travis-ci.org/piotrkubisa/apigo)
+
 Package `apigo` is an drop-in adapter to AWS Lambda functions (based on `go1.x` runtime) with a AWS API Gateway to easily reuse logic from _serverfull_ `http.Handler`s and provide the same experience for serverless function.
 
 ## Credits
