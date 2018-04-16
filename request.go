@@ -20,17 +20,7 @@ type RequestTransformer func(context.Context, events.APIGatewayProxyRequest) (*h
 // NewRequest returns a new http.Request created from the given Lambda event.
 func NewRequest(ctx context.Context, ev events.APIGatewayProxyRequest) (*http.Request, error) {
 	b := NewRequestBuilder(ctx, ev)
-	err := b.Transform(
-		b.ParseURL,
-		b.ParseBody,
-		b.CreateRequest,
-		b.AttachContext,
-		b.SetRemoteAddr,
-		b.SetHeaderFields,
-		b.SetContentLength,
-		b.SetCustomHeaders,
-		b.SetXRayHeader,
-	)
+	err := b.Transform(b.DefaultTransforms()...)
 	return b.Request, err
 }
 
@@ -50,6 +40,22 @@ type RequestBuilder struct {
 // provided from the API Gateway.
 func NewRequestBuilder(ctx context.Context, ev events.APIGatewayProxyRequest) *RequestBuilder {
 	return &RequestBuilder{ctx: ctx, ev: ev}
+}
+
+// DefaultTransforms returns a collection of Transformer functions which all
+// used by apigo during event-to-request transformation.
+func (b *RequestBuilder) DefaultTransforms() []Transformer {
+	return []Transformer{
+		b.ParseURL,
+		b.ParseBody,
+		b.CreateRequest,
+		b.AttachContext,
+		b.SetRemoteAddr,
+		b.SetHeaderFields,
+		b.SetContentLength,
+		b.SetCustomHeaders,
+		b.SetXRayHeader,
+	}
 }
 
 // Transformer transforms event from AWS API Gateway to the http.Request.
