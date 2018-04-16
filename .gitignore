@@ -1,5 +1,12 @@
-# Installed dependencies via golang/dep tool
-# To install dependencies via dep, please run `dep ensure --vendor-only`
+# Definition of dependencies (dep)
+Gopkg.lock
+Gopkg.toml
+
+# Definition of dependencies (glide)
+glide.lock
+glide.yaml
+
+# Installed dependencies
 vendor/
 
 # Copy of vendor/ directory made by glide when `dep init` was run again
