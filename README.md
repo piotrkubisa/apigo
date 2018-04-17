@@ -11,7 +11,7 @@ Package `apigo` is an drop-in adapter to AWS Lambda functions (based on `go1.x` 
 
 ## Installation
 
-Add `apigo` dependency using your vendor package manager (`dep`, `glide`) or `go get`:
+Add `apigo` dependency using your vendor package manager (i.e. `dep`) or `go get` it:
 
 ```bash
 go get -v github.com/piotrkubisa/apigo
@@ -21,7 +21,7 @@ go get -v github.com/piotrkubisa/apigo
 
 ### Default behaviour
 
-If you have already registered some `http.Handler`s, you easily can reuse with `apigo.Gateway`.
+If you have already registered some `http.Handler`s, you can easily reuse them with `apigo.Gateway`.
 Example below illustrates how to create a _hello world_ serverless application with `apigo`:
 
 ```go
@@ -52,7 +52,7 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 ### Custom event-to-request transformation
 
 If you have a bit more sophisticated deployment of your AWS Lambda functions then you probably would love to have more control over _event-to-request_ transformation.
-Imagine a situation if you have your API in one serverless function and you also have additional custom authorizer in separate AWS Lamda function.
+Imagine a situation if you have your API in one serverless function and you also have additional [custom authorizer](https://aws.amazon.com/blogs/compute/introducing-custom-authorizers-in-amazon-api-gateway/) in separate AWS Lamda function.
 In following scenario (presented in example below) context variable provided by serverless authorizer is passed to the API's `http.Request` context, which can be further inspected during request handling:
 
 ```go
