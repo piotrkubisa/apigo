@@ -16,29 +16,29 @@ func TestNewContext(t *testing.T) {
 			Stage:      "testing",
 			RequestID:  "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
 			Identity: events.APIGatewayRequestIdentity{
-				CognitoIdentityPoolID:         "",
-				AccountID:                     "",
-				CognitoIdentityID:             "",
-				Caller:                        "",
-				APIKey:                        "",
+				CognitoIdentityPoolID:         "xxx",
+				AccountID:                     "xxx",
+				CognitoIdentityID:             "xxx",
+				Caller:                        "xxx",
+				APIKey:                        "xxx",
 				SourceIP:                      "1.1.1.1",
-				CognitoAuthenticationType:     "",
-				CognitoAuthenticationProvider: "",
-				UserArn:   "",
-				UserAgent: "PostmanRuntime/7.1.1",
-				User:      "",
+				CognitoAuthenticationType:     "xxx",
+				CognitoAuthenticationProvider: "xxx",
+				UserArn:   "xxx",
+				UserAgent: "xxx",
+				User:      "xxx",
 			},
 			ResourcePath: "/{id}",
 			Authorizer: map[string]interface{}{
 				"cognitoUsername": "johndoe",
-				"principalId":     "XXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+				"principalId":     "xxxx",
 			},
 			HTTPMethod: "GET",
 			APIID:      "XXXXXXXXXX",
 		},
 	}
 
-	r, _ := NewRequest(context.TODO(), ev)
+	r, _ := DefaultProxy(context.TODO(), ev)
 	rc, _ := RequestContext(r.Context())
 
 	assert.Equal(t, "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX", rc.RequestID)
