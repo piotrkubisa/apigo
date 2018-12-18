@@ -99,8 +99,10 @@ func (r *Request) ParseURL() (*url.URL, error) {
 
 	// Query-string
 	q := u.Query()
-	for k, v := range r.Event.QueryStringParameters {
-		q.Set(k, v)
+	for k, qs := range r.Event.MultiValueQueryStringParameters {
+		for _, v := range qs {
+			q.Add(k, v)
+		}
 	}
 	u.RawQuery = q.Encode()
 
@@ -146,8 +148,10 @@ func SetRemoteAddr(r *Request) {
 
 // SetHeaderFields sets headers to the request.
 func SetHeaderFields(r *Request) {
-	for k, v := range r.Event.Headers {
-		r.Request.Header.Set(k, v)
+	for k, hs := range r.Event.MultiValueHeaders {
+		for _, v := range hs {
+			r.Request.Header.Add(k, v)
+		}
 	}
 }
 
