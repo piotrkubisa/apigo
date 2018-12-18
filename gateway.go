@@ -31,17 +31,13 @@ func NewGateway(handler http.Handler) *Gateway {
 
 // ListenAndServe is a drop-in replacement for http.ListenAndServe for use
 // within AWS Lambda.
-//
-// NOTE: First, ignored argument to this function was ignored, because it was
-// left to have the same signature of function as apex/gateway's ListenAndServe.
-func ListenAndServe(_ string, h http.Handler) error {
-	return NewGateway(h).ListenAndServe()
+func ListenAndServe(h http.Handler) {
+	NewGateway(h).ListenAndServe()
 }
 
 // ListenAndServe registers a listener of AWS Lambda events.
-func (g *Gateway) ListenAndServe() error {
+func (g *Gateway) ListenAndServe() {
 	lambda.Start(g.Serve)
-	return nil
 }
 
 // Serve handles incoming event from AWS Lambda by wraping them into
