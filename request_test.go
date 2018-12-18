@@ -39,9 +39,9 @@ func TestNewRequest_queryString(t *testing.T) {
 	e := events.APIGatewayProxyRequest{
 		HTTPMethod: "GET",
 		Path:       "/pets",
-		QueryStringParameters: map[string]string{
-			"order":  "desc",
-			"fields": "name,species",
+		MultiValueQueryStringParameters: map[string][]string{
+			"order":  {"desc"},
+			"fields": {"name,species"},
 		},
 	}
 
@@ -78,6 +78,11 @@ func TestNewRequest_header(t *testing.T) {
 			"Content-Type": "application/json",
 			"X-Foo":        "bar",
 			"Host":         "example.com",
+		},
+		MultiValueHeaders: map[string][]string{
+			"Content-Type": {"application/json"},
+			"X-Foo":        {"bar"},
+			"Host":         {"example.com"},
 		},
 		RequestContext: events.APIGatewayProxyRequestContext{
 			RequestID: "1234",
@@ -150,8 +155,8 @@ func customProxyStripPath(event events.APIGatewayProxyRequest, basePath string) 
 
 func TestStripBasePath_executeapi(t *testing.T) {
 	e := events.APIGatewayProxyRequest{
-		Headers: map[string]string{
-			"Host": "xxxxxxxxxx.execute-api.us-east-1.amazonaws.com",
+		MultiValueHeaders: map[string][]string{
+			"Host": {"xxxxxxxxxx.execute-api.us-east-1.amazonaws.com"},
 		},
 		RequestContext: events.APIGatewayProxyRequestContext{
 			Stage: "testing",
@@ -178,6 +183,9 @@ func TestStripBasePath_customDomain(t *testing.T) {
 		Headers: map[string]string{
 			"Host": "api.example.com",
 		},
+		MultiValueHeaders: map[string][]string{
+			"Host": {"api.example.com"},
+		},
 		RequestContext: events.APIGatewayProxyRequestContext{
 			Stage: "testing",
 		},
@@ -202,6 +210,9 @@ func TestStripBasePath_noBasePath(t *testing.T) {
 	e := events.APIGatewayProxyRequest{
 		Headers: map[string]string{
 			"Host": "api.example.com",
+		},
+		MultiValueHeaders: map[string][]string{
+			"Host": {"api.example.com"},
 		},
 		RequestContext: events.APIGatewayProxyRequestContext{
 			Stage: "testing",
