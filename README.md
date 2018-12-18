@@ -112,7 +112,7 @@ func routing() http.Handler {
 
 ### Goroutines
 
-If you are going to use `goroutines` in your AWS handler, then it is worth noting you should control its execution (i.e. by using `sync.WaitGroup`), otherwise code in the `goroutine` might be killed after returning a response to AWS API Gateway.
+If you are going to use `goroutines` in your AWS Lambda handler, then it is worth noting you should control its execution (i.e. by using `sync.WaitGroup`), otherwise code in the `goroutine` might be killed after returning a response to AWS API Gateway.
 
 ```go
 package main
