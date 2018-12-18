@@ -25,7 +25,6 @@ Example below illustrates how to create a _hello world_ serverless application w
 package main
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/piotrkubisa/apigo"
@@ -34,10 +33,7 @@ import (
 func main() {
 	http.HandleFunc("/hello", helloHandler)
 
-	err := apigo.ListenAndServe("", nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+	apigo.ListenAndServe(http.DefaultServeMux)
 }
 
 func helloHandler(w http.ResponseWriter, r *http.Request) {
@@ -68,21 +64,18 @@ import (
 
 func main() {
 	g := &apigo.Gateway{
-		RequestProxy: customTransformation,
-		Handler:      routing(),
+		Proxy:   apigo.ProxyFunc(customProxy),
+		Handler: routing(),
 	}
-	err := g.ListenAndServe()
-	if err != nil {
-		log.Fatal(err)
-	}
+	g.ListenAndServe()
 }
 
 type contextUsername struct{}
 
 var keyUsername = &contextUsername{}
 
-func customTransformation(ctx context.Context, ev events.APIGatewayProxyRequest) (*http.Request, error) {
-	r, err := apigo.NewRequest(ctx, ev)
+func customProxy(ctx context.Context, ev events.APIGatewayProxyRequest) (*http.Request, error) {
+	r, err := apigo.DefaultProxy(ctx, ev)
 	if err != nil {
 		return nil, err
 	}
@@ -114,6 +107,55 @@ func routing() http.Handler {
 	})
 
 	return r
+}
+```
+
+## Goroutines
+
+If you are going to use `goroutines` in your AWS handler, then it is worth noting you should control its execution (i.e. by using `sync.WaitGroup`), otherwise code in the `goroutine` might be killed after returning a response to AWS API Gateway.
+
+```go
+package main
+
+import (
+	"net/http"
+	"sync"
+
+	"github.com/go-chi/chi"
+	"github.com/piotrkubisa/apigo"
+)
+
+func main() {
+	apigo.ListenAndServe(routing())
+}
+
+func routing() http.Handler {
+	r := chi.NewRouter()
+
+	r.Post("/{name}", func(w http.ResponseWriter, r *http.Request) {
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go sendIoTMessage(&wg)
+		go sendSlackNotification(&wg)
+		wg.Wait()
+
+		// Headers, status, payload
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`"Done"`))
+	})
+
+	return r
+}
+
+func sendIoTMessage(wg *sync.WaitGroup) {
+	// ...
+	wg.Done()
+}
+
+func sendSlackNotification(wg *sync.WaitGroup) {
+	// ...
+	wg.Done()
 }
 ```
 
