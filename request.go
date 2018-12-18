@@ -138,7 +138,7 @@ func (r *Request) Transform(ts ...Transformer) {
 
 // AttachContext attaches events' RequestContext to the http.Request.
 func AttachContext(r *Request) {
-	r.Request = r.Request.WithContext(NewContext(r.Request.Context(), r.Event))
+	r.Request = r.Request.WithContext(NewContext(r.Context, r.Event))
 }
 
 // SetRemoteAddr sets RemoteAddr to the request.

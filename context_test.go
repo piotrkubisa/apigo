@@ -44,3 +44,17 @@ func TestNewContext(t *testing.T) {
 	assert.Equal(t, "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX", rc.RequestID)
 	assert.Equal(t, "johndoe", rc.Authorizer["cognitoUsername"])
 }
+
+func TestNewRequest_context(t *testing.T) {
+	type testRequestContextKey struct{}
+	var testContextKey = &testRequestContextKey{}
+
+	ev := events.APIGatewayProxyRequest{}
+	ctx := context.WithValue(context.TODO(), testContextKey, "value")
+
+	r, err := DefaultProxy(ctx, ev)
+	assert.NoError(t, err)
+
+	v := r.Context().Value(testContextKey)
+	assert.Equal(t, "value", v)
+}
