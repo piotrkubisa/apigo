@@ -2,6 +2,8 @@ package apigo_test
 
 import (
 	"context"
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"testing"
 
