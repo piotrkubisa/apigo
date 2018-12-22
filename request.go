@@ -38,7 +38,7 @@ func NewRequest(ctx context.Context, ev events.APIGatewayProxyRequest) *Request 
 
 // StripBasePath removes a BasePath from the Path fragment of the URL.
 // StripBasePath must be run before RequestBuilder.ParseURL function.
-func StripBasePath(r *Request, basePath string) {
+func (r *Request) StripBasePath(basePath string) {
 	r.Path = omitBasePath(r.Event.Path, basePath)
 }
 
@@ -121,17 +121,17 @@ func (r *Request) ParseBody() error {
 }
 
 // AttachContext attaches events' RequestContext to the http.Request.
-func AttachContext(r *Request) {
+func (r *Request) AttachContext() {
 	r.Request = r.Request.WithContext(NewContext(r.Context, r.Event))
 }
 
 // SetRemoteAddr sets RemoteAddr to the request.
-func SetRemoteAddr(r *Request) {
+func (r *Request) SetRemoteAddr() {
 	r.Request.RemoteAddr = r.Event.RequestContext.Identity.SourceIP
 }
 
 // SetHeaderFields sets headers to the request.
-func SetHeaderFields(r *Request) {
+func (r *Request) SetHeaderFields() {
 	for k, hs := range r.Event.MultiValueHeaders {
 		for _, v := range hs {
 			r.Request.Header.Add(k, v)
@@ -140,7 +140,7 @@ func SetHeaderFields(r *Request) {
 }
 
 // SetContentLength sets Content-Length to the request if it has not been set.
-func SetContentLength(r *Request) {
+func (r *Request) SetContentLength() {
 	if r.Request.Header.Get("Content-Length") == "" {
 		r.Request.Header.Set("Content-Length", strconv.Itoa(r.Body.Len()))
 	}
@@ -148,13 +148,13 @@ func SetContentLength(r *Request) {
 
 // SetCustomHeaders assigns X-Request-Id and X-Stage from the event's
 // Request Context.
-func SetCustomHeaders(r *Request) {
+func (r *Request) SetCustomHeaders() {
 	r.Request.Header.Set("X-Request-Id", r.Event.RequestContext.RequestID)
 	r.Request.Header.Set("X-Stage", r.Event.RequestContext.Stage)
 }
 
 // SetXRayHeader sets AWS X-Ray Trace ID from the event's context.
-func SetXRayHeader(r *Request) {
+func (r *Request) SetXRayHeader() {
 	if traceID := r.Context.Value("x-amzn-trace-id"); traceID != nil {
 		r.Request.Header.Set("X-Amzn-Trace-Id", fmt.Sprintf("%v", traceID))
 	}
