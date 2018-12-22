@@ -98,12 +98,7 @@ func (r *Request) ParseURL() (*url.URL, error) {
 	}
 
 	// Query-string
-	q := u.Query()
-	for k, qs := range r.Event.MultiValueQueryStringParameters {
-		for _, v := range qs {
-			q.Add(k, v)
-		}
-	}
+	q := url.Values(r.Event.MultiValueQueryStringParameters)
 	u.RawQuery = q.Encode()
 
 	// Host
