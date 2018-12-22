@@ -136,18 +136,16 @@ func TestNewRequest_bodyBinary(t *testing.T) {
 func customProxyStripPath(event events.APIGatewayProxyRequest, basePath string) (*http.Request, error) {
 	r := NewRequest(context.TODO(), event)
 
-	StripBasePath(basePath)(r)
+	StripBasePath(r, basePath)
 
 	if err := r.CreateRequest(); err != nil {
 		return nil, err
 	}
 
-	r.Transform(
-		SetRemoteAddr,
-		SetHeaderFields,
-		SetContentLength,
-		SetXRayHeader,
-	)
+	SetRemoteAddr(r)
+	SetHeaderFields(r)
+	SetContentLength(r)
+	SetXRayHeader(r)
 
 	return r.Request, nil
 }

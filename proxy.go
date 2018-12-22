@@ -36,14 +36,12 @@ func (p *DefaultProxy) Transform(ctx context.Context, ev events.APIGatewayProxyR
 		return nil, err
 	}
 
-	r.Transform(
-		AttachContext,
-		SetRemoteAddr,
-		SetHeaderFields,
-		SetContentLength,
-		SetCustomHeaders,
-		SetXRayHeader,
-	)
+	AttachContext(r)
+	SetRemoteAddr(r)
+	SetHeaderFields(r)
+	SetContentLength(r)
+	SetCustomHeaders(r)
+	SetXRayHeader(r)
 
 	return r.Request, nil
 }

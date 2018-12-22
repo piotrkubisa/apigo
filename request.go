@@ -38,10 +38,8 @@ func NewRequest(ctx context.Context, ev events.APIGatewayProxyRequest) *Request 
 
 // StripBasePath removes a BasePath from the Path fragment of the URL.
 // StripBasePath must be run before RequestBuilder.ParseURL function.
-func StripBasePath(basePath string) Transformer {
-	return func(r *Request) {
-		r.Path = omitBasePath(r.Event.Path, basePath)
-	}
+func StripBasePath(r *Request, basePath string) {
+	r.Path = omitBasePath(r.Event.Path, basePath)
 }
 
 // omitBasePath strips out the base path from the given path.
@@ -120,16 +118,6 @@ func (r *Request) ParseBody() error {
 	}
 	r.Body = bytes.NewReader(body)
 	return nil
-}
-
-// Transformer transforms event from AWS API Gateway to the http.Request.
-type Transformer func(r *Request)
-
-// Transform AWS API Gateway event to a http.Request.
-func (r *Request) Transform(ts ...Transformer) {
-	for _, p := range ts {
-		p(r)
-	}
 }
 
 // AttachContext attaches events' RequestContext to the http.Request.
