@@ -21,6 +21,7 @@ type Request struct {
 	Event   events.APIGatewayProxyRequest
 
 	Path    string
+	Host    string
 	URL     *url.URL
 	Body    *bytes.Reader
 	Request *http.Request
@@ -102,7 +103,7 @@ func (r *Request) ParseURL() (*url.URL, error) {
 	u.RawQuery = q.Encode()
 
 	// Host
-	u.Host = r.Event.Headers["Host"]
+	u.Host = r.Host
 
 	return u, nil
 }

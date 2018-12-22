@@ -15,7 +15,7 @@ func TestNewRequest_path(t *testing.T) {
 		Path: "/pets/luna",
 	}
 
-	r, err := DefaultProxy(context.Background(), e)
+	r, err := new(DefaultProxy).Transform(context.TODO(), e)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "GET", r.Method)
@@ -29,7 +29,7 @@ func TestNewRequest_method(t *testing.T) {
 		Path:       "/pets/luna",
 	}
 
-	r, err := DefaultProxy(context.Background(), e)
+	r, err := new(DefaultProxy).Transform(context.TODO(), e)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "DELETE", r.Method)
@@ -45,7 +45,7 @@ func TestNewRequest_queryString(t *testing.T) {
 		},
 	}
 
-	r, err := DefaultProxy(context.Background(), e)
+	r, err := new(DefaultProxy).Transform(context.TODO(), e)
 	assert.NoError(t, err)
 
 	assert.Equal(t, `/pets?fields=name%2Cspecies&order=desc`, r.URL.String())
@@ -63,7 +63,7 @@ func TestNewRequest_remoteAddr(t *testing.T) {
 		},
 	}
 
-	r, err := DefaultProxy(context.Background(), e)
+	r, err := new(DefaultProxy).Transform(context.TODO(), e)
 	assert.NoError(t, err)
 
 	assert.Equal(t, `1.2.3.4`, r.RemoteAddr)
@@ -77,12 +77,10 @@ func TestNewRequest_header(t *testing.T) {
 		Headers: map[string]string{
 			"Content-Type": "application/json",
 			"X-Foo":        "bar",
-			"Host":         "example.com",
 		},
 		MultiValueHeaders: map[string][]string{
 			"Content-Type": {"application/json"},
 			"X-Foo":        {"bar"},
-			"Host":         {"example.com"},
 		},
 		RequestContext: events.APIGatewayProxyRequestContext{
 			RequestID: "1234",
@@ -90,10 +88,11 @@ func TestNewRequest_header(t *testing.T) {
 		},
 	}
 
-	r, err := DefaultProxy(context.Background(), e)
+	p := &DefaultProxy{Host: "api.example.com"}
+	r, err := p.Transform(context.TODO(), e)
 	assert.NoError(t, err)
 
-	assert.Equal(t, `example.com`, r.Host)
+	assert.Equal(t, `api.example.com`, r.Host)
 	assert.Equal(t, `prod`, r.Header.Get("X-Stage"))
 	assert.Equal(t, `1234`, r.Header.Get("X-Request-Id"))
 	assert.Equal(t, `18`, r.Header.Get("Content-Length"))
@@ -108,7 +107,7 @@ func TestNewRequest_body(t *testing.T) {
 		Body:       `{ "name": "Tobi" }`,
 	}
 
-	r, err := DefaultProxy(context.Background(), e)
+	r, err := new(DefaultProxy).Transform(context.TODO(), e)
 	assert.NoError(t, err)
 
 	b, err := ioutil.ReadAll(r.Body)
@@ -125,7 +124,7 @@ func TestNewRequest_bodyBinary(t *testing.T) {
 		IsBase64Encoded: true,
 	}
 
-	r, err := DefaultProxy(context.Background(), e)
+	r, err := new(DefaultProxy).Transform(context.TODO(), e)
 	assert.NoError(t, err)
 
 	b, err := ioutil.ReadAll(r.Body)

@@ -22,9 +22,14 @@ func (f ProxyFunc) Transform(ctx context.Context, ev events.APIGatewayProxyReque
 	return f(ctx, ev)
 }
 
+type DefaultProxy struct {
+	Host string
+}
+
 // DefaultProxy returns a new http.Request created from the given Lambda event.
-func DefaultProxy(ctx context.Context, ev events.APIGatewayProxyRequest) (*http.Request, error) {
+func (p *DefaultProxy) Transform(ctx context.Context, ev events.APIGatewayProxyRequest) (*http.Request, error) {
 	r := NewRequest(ctx, ev)
+	r.Host = p.Host
 
 	err := r.CreateRequest()
 	if err != nil {

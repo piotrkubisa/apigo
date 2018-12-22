@@ -24,9 +24,9 @@ func TestNewContext(t *testing.T) {
 				SourceIP:                      "1.1.1.1",
 				CognitoAuthenticationType:     "xxx",
 				CognitoAuthenticationProvider: "xxx",
-				UserArn:   "xxx",
-				UserAgent: "xxx",
-				User:      "xxx",
+				UserArn:                       "xxx",
+				UserAgent:                     "xxx",
+				User:                          "xxx",
 			},
 			ResourcePath: "/{id}",
 			Authorizer: map[string]interface{}{
@@ -38,7 +38,7 @@ func TestNewContext(t *testing.T) {
 		},
 	}
 
-	r, _ := DefaultProxy(context.TODO(), ev)
+	r, _ := new(DefaultProxy).Transform(context.TODO(), ev)
 	rc, _ := RequestContext(r.Context())
 
 	assert.Equal(t, "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX", rc.RequestID)
@@ -52,7 +52,7 @@ func TestNewRequest_context(t *testing.T) {
 	ev := events.APIGatewayProxyRequest{}
 	ctx := context.WithValue(context.TODO(), testContextKey, "value")
 
-	r, err := DefaultProxy(ctx, ev)
+	r, err := new(DefaultProxy).Transform(ctx, ev)
 	assert.NoError(t, err)
 
 	v := r.Context().Value(testContextKey)

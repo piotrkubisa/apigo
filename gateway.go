@@ -18,21 +18,21 @@ type Gateway struct {
 // NewGateway creates new Gateway, which utilizes handler
 // (or http.DefaultServeMux if nil passed) as a Gateway.Handler and
 // apigo.http.DefaultProxy as a Gateway.Proxy.
-func NewGateway(handler http.Handler) *Gateway {
+func NewGateway(host string, handler http.Handler) *Gateway {
 	if handler == nil {
 		handler = http.DefaultServeMux
 	}
 
 	return &Gateway{
 		Handler: handler,
-		Proxy:   ProxyFunc(DefaultProxy),
+		Proxy:   &DefaultProxy{host},
 	}
 }
 
 // ListenAndServe is a drop-in replacement for http.ListenAndServe for use
 // within AWS Lambda.
-func ListenAndServe(h http.Handler) {
-	NewGateway(h).ListenAndServe()
+func ListenAndServe(host string, h http.Handler) {
+	NewGateway(host, h).ListenAndServe()
 }
 
 // ListenAndServe registers a listener of AWS Lambda events.
