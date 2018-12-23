@@ -33,7 +33,7 @@ import (
 func main() {
 	http.HandleFunc("/hello", helloHandler)
 
-	apigo.ListenAndServe(http.DefaultServeMux)
+	apigo.ListenAndServe("api.example.com", http.DefaultServeMux)
 }
 
 func helloHandler(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +64,7 @@ import (
 
 func main() {
 	g := &apigo.Gateway{
-		Proxy:   apigo.ProxyFunc(customProxy),
+		Proxy:   &CustomProxy{apigo.DefaultProxy{"api.example.com"}},
 		Handler: routing(),
 	}
 	g.ListenAndServe()
@@ -74,8 +74,12 @@ type contextUsername struct{}
 
 var keyUsername = &contextUsername{}
 
-func customProxy(ctx context.Context, ev events.APIGatewayProxyRequest) (*http.Request, error) {
-	r, err := apigo.DefaultProxy(ctx, ev)
+type CustomProxy struct {
+	apigo.DefaultProxy
+}
+
+func (p *CustomProxy) Transform(ctx context.Context, ev events.APIGatewayProxyRequest) (*http.Request, error) {
+	r, err := p.DefaultProxy.Transform(ctx, ev)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +130,7 @@ import (
 )
 
 func main() {
-	apigo.ListenAndServe(routing())
+	apigo.ListenAndServe("api.example.com", routing())
 }
 
 func routing() http.Handler {
