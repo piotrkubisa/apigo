@@ -118,7 +118,7 @@ func (r *Request) ParseBody() error {
 
 // AttachContext attaches events' RequestContext to the http.Request.
 func (r *Request) AttachContext(req *http.Request) {
-	req = req.WithContext(NewContext(r.Context, r.Event))
+	*req = *req.WithContext(NewContext(r.Context, r.Event))
 }
 
 // SetRemoteAddr sets RemoteAddr to the request.
