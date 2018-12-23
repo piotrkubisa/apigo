@@ -20,11 +20,8 @@ type Request struct {
 	Context context.Context
 	Event   events.APIGatewayProxyRequest
 
-	Path    string
-	Host    string
-	URL     *url.URL
-	Body    *bytes.Reader
-	Request *http.Request
+	Path string
+	Body *bytes.Reader
 }
 
 // NewRequest defines new RequestBuilder with context and event data
@@ -63,26 +60,25 @@ func omitBasePath(path string, basePath string) string {
 }
 
 // CreateRequest provides *http.Request to the RequestBuilder.
-func (r *Request) CreateRequest() error {
-	u, err := r.ParseURL()
+func (r *Request) CreateRequest(host string) (*http.Request, error) {
+	u, err := r.ParseURL(host)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := r.ParseBody(); err != nil {
-		return err
+		return nil, err
 	}
 
 	req, err := http.NewRequest(r.Event.HTTPMethod, u.String(), r.Body)
 	if err != nil {
-		return errors.Wrap(err, "creating request")
+		return nil, err
 	}
 
-	r.Request = req
-	return nil
+	return req, nil
 }
 
 // ParseURL provides URL (as a *url.URL) to the RequestBuilder.
-func (r *Request) ParseURL() (*url.URL, error) {
+func (r *Request) ParseURL(host string) (*url.URL, error) {
 	// Whether path has been already defined (i.e. processed by previous
 	// function) then use it, otherwise use path from the event.
 	path := r.Path
@@ -101,7 +97,7 @@ func (r *Request) ParseURL() (*url.URL, error) {
 	u.RawQuery = q.Encode()
 
 	// Host
-	u.Host = r.Host
+	u.Host = host
 
 	return u, nil
 }
@@ -121,41 +117,41 @@ func (r *Request) ParseBody() error {
 }
 
 // AttachContext attaches events' RequestContext to the http.Request.
-func (r *Request) AttachContext() {
-	r.Request = r.Request.WithContext(NewContext(r.Context, r.Event))
+func (r *Request) AttachContext(req *http.Request) {
+	req = req.WithContext(NewContext(r.Context, r.Event))
 }
 
 // SetRemoteAddr sets RemoteAddr to the request.
-func (r *Request) SetRemoteAddr() {
-	r.Request.RemoteAddr = r.Event.RequestContext.Identity.SourceIP
+func (r *Request) SetRemoteAddr(req *http.Request) {
+	req.RemoteAddr = r.Event.RequestContext.Identity.SourceIP
 }
 
 // SetHeaderFields sets headers to the request.
-func (r *Request) SetHeaderFields() {
+func (r *Request) SetHeaderFields(req *http.Request) {
 	for k, hs := range r.Event.MultiValueHeaders {
 		for _, v := range hs {
-			r.Request.Header.Add(k, v)
+			req.Header.Add(k, v)
 		}
 	}
 }
 
 // SetContentLength sets Content-Length to the request if it has not been set.
-func (r *Request) SetContentLength() {
-	if r.Request.Header.Get("Content-Length") == "" {
-		r.Request.Header.Set("Content-Length", strconv.Itoa(r.Body.Len()))
+func (r *Request) SetContentLength(req *http.Request) {
+	if req.Header.Get("Content-Length") == "" {
+		req.Header.Set("Content-Length", strconv.Itoa(r.Body.Len()))
 	}
 }
 
 // SetCustomHeaders assigns X-Request-Id and X-Stage from the event's
 // Request Context.
-func (r *Request) SetCustomHeaders() {
-	r.Request.Header.Set("X-Request-Id", r.Event.RequestContext.RequestID)
-	r.Request.Header.Set("X-Stage", r.Event.RequestContext.Stage)
+func (r *Request) SetCustomHeaders(req *http.Request) {
+	req.Header.Set("X-Request-Id", r.Event.RequestContext.RequestID)
+	req.Header.Set("X-Stage", r.Event.RequestContext.Stage)
 }
 
 // SetXRayHeader sets AWS X-Ray Trace ID from the event's context.
-func (r *Request) SetXRayHeader() {
+func (r *Request) SetXRayHeader(req *http.Request) {
 	if traceID := r.Context.Value("x-amzn-trace-id"); traceID != nil {
-		r.Request.Header.Set("X-Amzn-Trace-Id", fmt.Sprintf("%v", traceID))
+		req.Header.Set("X-Amzn-Trace-Id", fmt.Sprintf("%v", traceID))
 	}
 }

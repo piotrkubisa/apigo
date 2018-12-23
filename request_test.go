@@ -3,7 +3,6 @@ package apigo
 import (
 	"context"
 	"io/ioutil"
-	"net/http"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -133,27 +132,15 @@ func TestNewRequest_bodyBinary(t *testing.T) {
 	assert.Equal(t, "hello world\n", string(b))
 }
 
-func customProxyStripPath(event events.APIGatewayProxyRequest, basePath string) (*http.Request, error) {
-	r := NewRequest(context.TODO(), event)
-
-	r.StripBasePath(basePath)
-
-	if err := r.CreateRequest(); err != nil {
-		return nil, err
+func TestStripBasePath_executeapi(t *testing.T) {
+	p := StripBasePathProxy{
+		Host:     "xxxxxxxxxx.execute-api.us-east-1.amazonaws.com",
+		BasePath: "pets",
 	}
 
-	r.SetRemoteAddr()
-	r.SetHeaderFields()
-	r.SetContentLength()
-	r.SetXRayHeader()
-
-	return r.Request, nil
-}
-
-func TestStripBasePath_executeapi(t *testing.T) {
 	e := events.APIGatewayProxyRequest{
 		MultiValueHeaders: map[string][]string{
-			"Host": {"xxxxxxxxxx.execute-api.us-east-1.amazonaws.com"},
+			"Host": {p.Host},
 		},
 		RequestContext: events.APIGatewayProxyRequestContext{
 			Stage: "testing",
@@ -162,26 +149,31 @@ func TestStripBasePath_executeapi(t *testing.T) {
 
 	t.Run("GetItem", func(t *testing.T) {
 		e.Path = "/123"
-		r, err := customProxyStripPath(e, "pets")
+		r, err := p.Transform(context.TODO(), e)
 		assert.NoError(t, err)
 		assert.Equal(t, "/123", r.URL.Path)
 	})
 
 	t.Run("ListItems", func(t *testing.T) {
 		e.Path = "/"
-		r, err := customProxyStripPath(e, "pets")
+		r, err := p.Transform(context.TODO(), e)
 		assert.NoError(t, err)
 		assert.Equal(t, "/", r.URL.Path)
 	})
 }
 
 func TestStripBasePath_customDomain(t *testing.T) {
+	p := StripBasePathProxy{
+		Host:     "api.example.com",
+		BasePath: "pets",
+	}
+
 	e := events.APIGatewayProxyRequest{
 		Headers: map[string]string{
-			"Host": "api.example.com",
+			"Host": p.Host,
 		},
 		MultiValueHeaders: map[string][]string{
-			"Host": {"api.example.com"},
+			"Host": {p.Host},
 		},
 		RequestContext: events.APIGatewayProxyRequestContext{
 			Stage: "testing",
@@ -190,26 +182,31 @@ func TestStripBasePath_customDomain(t *testing.T) {
 
 	t.Run("ListItems", func(t *testing.T) {
 		e.Path = "/pets"
-		r, err := customProxyStripPath(e, "pets")
+		r, err := p.Transform(context.TODO(), e)
 		assert.NoError(t, err)
 		assert.Equal(t, "/", r.URL.Path)
 	})
 
 	t.Run("GetItem", func(t *testing.T) {
 		e.Path = "/pets/123"
-		r, err := customProxyStripPath(e, "pets")
+		r, err := p.Transform(context.TODO(), e)
 		assert.NoError(t, err)
 		assert.Equal(t, "/123", r.URL.Path)
 	})
 }
 
 func TestStripBasePath_noBasePath(t *testing.T) {
+	p := StripBasePathProxy{
+		Host:     "api.example.com",
+		BasePath: "pets",
+	}
+
 	e := events.APIGatewayProxyRequest{
 		Headers: map[string]string{
-			"Host": "api.example.com",
+			"Host": p.Host,
 		},
 		MultiValueHeaders: map[string][]string{
-			"Host": {"api.example.com"},
+			"Host": {p.Host},
 		},
 		RequestContext: events.APIGatewayProxyRequestContext{
 			Stage: "testing",
@@ -218,14 +215,14 @@ func TestStripBasePath_noBasePath(t *testing.T) {
 
 	t.Run("ListItems", func(t *testing.T) {
 		e.Path = "/"
-		r, err := customProxyStripPath(e, "")
+		r, err := p.Transform(context.TODO(), e)
 		assert.NoError(t, err)
 		assert.Equal(t, "/", r.URL.Path)
 	})
 
 	t.Run("GetItem", func(t *testing.T) {
 		e.Path = "/123"
-		r, err := customProxyStripPath(e, "")
+		r, err := p.Transform(context.TODO(), e)
 		assert.NoError(t, err)
 		assert.Equal(t, "/123", r.URL.Path)
 	})
