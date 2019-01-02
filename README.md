@@ -3,9 +3,6 @@
 [![Documentation](https://godoc.org/github.com/piotrkubisa/apigo?status.svg)](http://godoc.org/github.com/piotrkubisa/apigo)
 [![Build Status](https://travis-ci.org/piotrkubisa/apigo.svg?branch=master)](https://travis-ci.org/piotrkubisa/apigo)
 [![Go Report Card](https://goreportcard.com/badge/github.com/piotrkubisa/apigo)](https://goreportcard.com/report/github.com/piotrkubisa/apigo)
-[![Exago](https://api.exago.io:443/badge/rank/github.com/piotrkubisa/apigo)](https://exago.io/project/github.com/piotrkubisa/apigo)
-[![Exago](https://api.exago.io:443/badge/cov/github.com/piotrkubisa/apigo)](https://exago.io/project/github.com/piotrkubisa/apigo)
-[![Exago](https://api.exago.io:443/badge/thirdparties/github.com/piotrkubisa/apigo)](https://exago.io/project/github.com/piotrkubisa/apigo)
 
 Package `apigo` is an drop-in adapter to AWS Lambda functions (based on `go1.x` runtime) with a AWS API Gateway to easily reuse logic from _serverfull_ `http.Handler`s and provide the same experience for serverless function.
 
@@ -28,7 +25,6 @@ Example below illustrates how to create a _hello world_ serverless application w
 package main
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/piotrkubisa/apigo"
@@ -37,10 +33,7 @@ import (
 func main() {
 	http.HandleFunc("/hello", helloHandler)
 
-	err := apigo.ListenAndServe("", nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+	apigo.ListenAndServe("api.example.com", http.DefaultServeMux)
 }
 
 func helloHandler(w http.ResponseWriter, r *http.Request) {
@@ -71,21 +64,22 @@ import (
 
 func main() {
 	g := &apigo.Gateway{
-		RequestProxy: customTransformation,
-		Handler:      routing(),
+		Proxy:   &CustomProxy{apigo.DefaultProxy{"api.example.com"}},
+		Handler: routing(),
 	}
-	err := g.ListenAndServe()
-	if err != nil {
-		log.Fatal(err)
-	}
+	g.ListenAndServe()
 }
 
 type contextUsername struct{}
 
 var keyUsername = &contextUsername{}
 
-func customTransformation(ctx context.Context, ev events.APIGatewayProxyRequest) (*http.Request, error) {
-	r, err := apigo.NewRequest(ctx, ev)
+type CustomProxy struct {
+	apigo.DefaultProxy
+}
+
+func (p *CustomProxy) Transform(ctx context.Context, ev events.APIGatewayProxyRequest) (*http.Request, error) {
+	r, err := p.DefaultProxy.Transform(ctx, ev)
 	if err != nil {
 		return nil, err
 	}
@@ -117,6 +111,55 @@ func routing() http.Handler {
 	})
 
 	return r
+}
+```
+
+### Goroutines
+
+If you are going to use `goroutines` in your AWS Lambda handler, then it is worth noting you should control its execution (i.e. by using `sync.WaitGroup`), otherwise code in the `goroutine` might be killed after returning a response to AWS API Gateway.
+
+```go
+package main
+
+import (
+	"net/http"
+	"sync"
+
+	"github.com/go-chi/chi"
+	"github.com/piotrkubisa/apigo"
+)
+
+func main() {
+	apigo.ListenAndServe("api.example.com", routing())
+}
+
+func routing() http.Handler {
+	r := chi.NewRouter()
+
+	r.Post("/cat", func(w http.ResponseWriter, r *http.Request) {
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go sendIoTMessage(&wg)
+		go sendSlackNotification(&wg)
+		wg.Wait()
+
+		// Headers, status, payload
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`"Meow"`))
+	})
+
+	return r
+}
+
+func sendIoTMessage(wg *sync.WaitGroup) {
+	// ...
+	wg.Done()
+}
+
+func sendSlackNotification(wg *sync.WaitGroup) {
+	// ...
+	wg.Done()
 }
 ```
 

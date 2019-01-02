@@ -12,10 +12,7 @@ import (
 )
 
 func BenchmarkGateway_Serve(b *testing.B) {
-	g := apigo.Gateway{
-		Handler:      http.HandlerFunc(helloHandler),
-		RequestProxy: apigo.NewRequest,
-	}
+	g := apigo.NewGateway("api.example.com", http.HandlerFunc(helloHandler))
 
 	payload, err := ioutil.ReadFile("./vendor/github.com/aws/aws-lambda-go/events/testdata/apigw-request.json")
 	if err != nil {
