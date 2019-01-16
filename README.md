@@ -6,6 +6,13 @@
 
 Package `apigo` is an drop-in adapter to AWS Lambda functions (based on `go1.x` runtime) with a AWS API Gateway to easily reuse logic from _serverfull_ `http.Handler`s and provide the same experience for serverless function.
 
+---
+
+**This repository has been moved to the https://github.com/drivetopurchase/apigo**.
+
+---
+
+
 ## Installation
 
 Add `apigo` dependency using your vendor package manager (i.e. `dep`) or `go get` it:
