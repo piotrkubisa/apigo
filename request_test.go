@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/tj/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewRequest_path(t *testing.T) {

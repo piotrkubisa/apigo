@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/tj/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_JSON_isTextMime(t *testing.T) {
@@ -51,6 +51,7 @@ func TestResponseWriter_Write_text(t *testing.T) {
 			assert.Equal(t, 200, e.StatusCode)
 			assert.Equal(t, "hello world\n", e.Body)
 			assert.Equal(t, kind, e.Headers["Content-Type"])
+			assert.Equal(t, kind, e.MultiValueHeaders["Content-Type"][0])
 			assert.False(t, e.IsBase64Encoded)
 			assert.True(t, <-w.CloseNotify())
 		})
@@ -66,6 +67,7 @@ func TestResponseWriter_Write_binary(t *testing.T) {
 	assert.Equal(t, 200, e.StatusCode)
 	assert.Equal(t, "ZGF0YQ==", e.Body)
 	assert.Equal(t, "image/png", e.Headers["Content-Type"])
+	assert.Equal(t, "image/png", e.MultiValueHeaders["Content-Type"][0])
 	assert.True(t, e.IsBase64Encoded)
 }
 
@@ -79,6 +81,7 @@ func TestResponseWriter_Write_gzip(t *testing.T) {
 	assert.Equal(t, 200, e.StatusCode)
 	assert.Equal(t, "ZGF0YQ==", e.Body)
 	assert.Equal(t, "text/plain", e.Headers["Content-Type"])
+	assert.Equal(t, "text/plain", e.MultiValueHeaders["Content-Type"][0])
 	assert.True(t, e.IsBase64Encoded)
 }
 
@@ -91,4 +94,5 @@ func TestResponseWriter_WriteHeader(t *testing.T) {
 	assert.Equal(t, 404, e.StatusCode)
 	assert.Equal(t, "Not Found\n", e.Body)
 	assert.Equal(t, "text/plain; charset=utf8", e.Headers["Content-Type"])
+	assert.Equal(t, "text/plain; charset=utf8", e.MultiValueHeaders["Content-Type"][0])
 }

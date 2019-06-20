@@ -1,10 +1,8 @@
 language: go
 go_import_path: github.com/piotrkubisa/apigo
 go:
-  - 1.10.x
-  - 1.11.x
+  - 1.12.x
   - tip
 
 script:
-  - go get -t ./...
-  - go test -v ./...
+  - GO111MODULE=on go test -v ./...
