@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/tj/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewContext(t *testing.T) {
