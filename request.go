@@ -61,15 +61,11 @@ func omitBasePath(path string, basePath string) string {
 
 // CreateRequest provides *http.Request to the RequestBuilder.
 func (r *Request) CreateRequest(host string) (*http.Request, error) {
-	u, err := r.ParseURL(host)
-	if err != nil {
-		return nil, err
-	}
 	if err := r.ParseBody(); err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(r.Event.HTTPMethod, u.String(), r.Body)
+	req, err := http.NewRequest(r.Event.HTTPMethod, r.ParseURL(host).String(), r.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +74,7 @@ func (r *Request) CreateRequest(host string) (*http.Request, error) {
 }
 
 // ParseURL provides URL (as a *url.URL) to the RequestBuilder.
-func (r *Request) ParseURL(host string) (*url.URL, error) {
+func (r *Request) ParseURL(host string) *url.URL {
 	// Whether path has been already defined (i.e. processed by previous
 	// function) then use it, otherwise use path from the event.
 	path := r.Path
@@ -87,19 +83,17 @@ func (r *Request) ParseURL(host string) (*url.URL, error) {
 	}
 
 	// Parse URL to *url.URL
-	u, err := url.Parse(path)
-	if err != nil {
-		return nil, errors.Wrap(err, "parsing path")
+	u := &url.URL{
+		Scheme: r.Event.Headers["X-Forwarded-Proto"],
+		Host:   host,
+		Path:   path,
 	}
 
 	// Query-string
 	q := url.Values(r.Event.MultiValueQueryStringParameters)
 	u.RawQuery = q.Encode()
 
-	// Host
-	u.Host = host
-
-	return u, nil
+	return u
 }
 
 // ParseBody provides body of the request to the RequestBuilder.
