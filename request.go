@@ -3,6 +3,7 @@ package apigo
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -65,10 +66,13 @@ func (r *Request) CreateRequest(host string) (*http.Request, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(r.Event.HTTPMethod, r.ParseURL(host).String(), r.Body)
+	uri := r.ParseURL(host).String()
+	req, err := http.NewRequest(r.Event.HTTPMethod, uri, r.Body)
 	if err != nil {
 		return nil, err
 	}
+	req.TLS = &tls.ConnectionState{}
+	req.RequestURI = uri
 
 	return req, nil
 }
